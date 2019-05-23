@@ -46,13 +46,14 @@ class Network:
         return minmax
 
     def normalize_dataset(self, dataset, minmax):
-        data = []
-        i = 0
-        for elem in dataset:
-            std_elem = (elem - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
-            data.append(std_elem)
-            i += 1
-        return data
+        normalized_data = (dataset-dataset.min()) / (dataset.max() - dataset.min())
+        return normalized_data
+        # i = 0
+        # for elem in dataset:
+        #     std_elem = (elem - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
+        #     data.append(std_elem)
+        #     i += 1
+        # return data
 
     def ft_standardize(self, matrix):
         print (matrix)
@@ -84,17 +85,26 @@ class Network:
     def sigmoid_prime(self, x):
         return x * (1 - x)
 
-    def forward_propagation(self, row):
-        inputs = row
+    def forward_propagation(self, data):
+        inputs = data
+        print (inputs)
+        l = 0
         for layer in self.network:
+            l += 1
             new_inputs = []
             for neuron in layer:
-                # z = np.dot(neuron['weights'], inputs)
-                z = self.activate(neuron['weights'], inputs)
+                z = np.dot(inputs, neuron['weights'])
+                # z = self.activate(neuron['weights'], inputs)
                 neuron['a'] = self.sigmoid(z)
                 new_inputs.append(neuron['a'])
-            inputs = new_inputs
+            if l < len(self.network):
+                new_inputs.append(np.ones(len(inputs)))
+            inputs = pd.DataFrame(new_inputs).T
         return inputs
+
+    def ft_error_evaluation(self, output, y):
+        cost = output - y
+        return cost.sum(axis=1)
 
     def backward_propagation(self, expected):
         # db = [np.zeros(b.shape) for b in self.biases]
@@ -160,43 +170,47 @@ class Network:
         #     print(layer)
         # print (output)
         y = self.build_excpected(data)
+        sum_err = 0
+        data = data.iloc[:, 1:]
+        minmax = self.ft_get_stats(data)
+        std_data = self.normalize_dataset(data, minmax)
         for epoch in range(epochs):
-            sum_err = 0
-            minmax = self.ft_get_stats(data.iloc[:, 1:])
-            for row in data.iterrows():
-                index, batch = row
-                inputs = batch.tolist()
-                if inputs[0] == 'M':
-                    expected = [0, 1]
-                else:
-                    expected = [1, 0]
-                del inputs[0]
-                std_inputs = self.normalize_dataset(inputs, minmax)
-                outputs = self.forward_propagation(std_inputs)
-                sum_err += sum([(expected[i] - outputs[i]) ** 2 for i in range(len(expected))])
-                self.backward_propagation(expected)
-                self.update_weights(inputs, lr)
+            outputs = self.forward_propagation(std_data)
+            error = self.ft_error_evaluation(outputs, y)
+            # for row in data.iterrows():
+            #     index, batch = row
+            #     inputs = batch.tolist()
+            #     if inputs[0] == 'M':
+            #         expected = [0, 1]
+            #     else:
+            #         expected = [1, 0]
+            #     del inputs[0]
+            #     std_inputs = self.normalize_dataset(inputs, minmax)
+            #     outputs = self.forward_propagation(std_inputs)
+            #     sum_err += sum([(expected[i] - outputs[i]) ** 2 for i in range(len(expected))])
+            #     self.backward_propagation(expected)
+            #     self.update_weights(inputs, lr)
             print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, sum_err))
-        t = 0
-        f = 0
-        df = pd.read_csv('data_test.csv', sep=',')
-        df = df.dropna()
-        df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        for row in df.iterrows():
-            index, batch = row
-            test = batch.tolist()
-            if test[0] == 'M':
-                expected = [0, 1]
-            else:
-                expected = [1, 0]
-            del test[0]
-            std_test = self.normalize_dataset(test, minmax)
-            prediction = self.predict(std_test)
-            if (max(prediction) == prediction[0] and expected[0] == 1) or (max(prediction) == prediction[1] and expected[1] == 1):
-                t += 1
-            else:
-                f += 1
-        print ('Accuracy :', t * 100 / (t + f))
+        # t = 0
+        # f = 0
+        # df = pd.read_csv('data_test.csv', sep=',')
+        # df = df.dropna()
+        # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
+        # for row in df.iterrows():
+        #     index, batch = row
+        #     test = batch.tolist()
+        #     if test[0] == 'M':
+        #         expected = [0, 1]
+        #     else:
+        #         expected = [1, 0]
+        #     del test[0]
+        #     std_test = self.normalize_dataset(test, minmax)
+        #     prediction = self.predict(std_test)
+        #     if (max(prediction) == prediction[0] and expected[0] == 1) or (max(prediction) == prediction[1] and expected[1] == 1):
+        #         t += 1
+        #     else:
+        #         f += 1
+        # print ('Accuracy :', t * 100 / (t + f))
 
         # for j in range(epochs):
         #     # np.random.shuffle(data)
@@ -213,7 +227,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=300, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=2, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.01, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
