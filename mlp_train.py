@@ -45,7 +45,6 @@ class Network:
             minmax.append(stats)
         return minmax
 
-    # Rescale dataset columns to the range 0-1
     def normalize_dataset(self, dataset, minmax):
         data = []
         i = 0
@@ -58,6 +57,19 @@ class Network:
     def ft_standardize(self, matrix):
         print (matrix)
         return (matrix - matrix.mean()) / matrix.std()
+
+    def build_excpected(self, data):
+        expected = []
+        for row in data.iterrows():
+            index, batch = row
+            inputs = batch.tolist()
+            if inputs[0] == 'M':
+                expected.append([0, 1])
+            else:
+                expected.append([1, 0])
+        df_ex = pd.DataFrame(expected)
+        return df_ex
+
 
     def activate(self, weights, inputs):
         b = weights[-1]
@@ -147,6 +159,7 @@ class Network:
         # for layer in self.network:
         #     print(layer)
         # print (output)
+        y = self.build_excpected(data)
         for epoch in range(epochs):
             sum_err = 0
             minmax = self.ft_get_stats(data.iloc[:, 1:])
@@ -160,16 +173,10 @@ class Network:
                 del inputs[0]
                 std_inputs = self.normalize_dataset(inputs, minmax)
                 outputs = self.forward_propagation(std_inputs)
-                # excpected = [0 for i in range(2)
-                # expected[row[-1]] = 1
-                # print ('EX:', expected, outputs)
                 sum_err += sum([(expected[i] - outputs[i]) ** 2 for i in range(len(expected))])
                 self.backward_propagation(expected)
                 self.update_weights(inputs, lr)
             print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, sum_err))
-        # print (self.network)
-        # for layer in self.network:
-        #     print (layer)
         t = 0
         f = 0
         df = pd.read_csv('data_test.csv', sep=',')
@@ -217,7 +224,6 @@ if os.path.isfile(args.file):
         df = pd.read_csv(args.file, sep=',')
         df = df.dropna()
         df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        # df = df.iloc[:, [0, 1, 2, 3]]
         Train(df, args.epoch, args.learning, args.visu, args.batch).train()
         
     except Exception as e:
