@@ -87,7 +87,6 @@ class Network:
 
     def forward_propagation(self, data):
         inputs = data
-        print (inputs)
         l = 0
         for layer in self.network:
             l += 1
@@ -103,8 +102,8 @@ class Network:
         return inputs
 
     def ft_error_evaluation(self, output, y):
-        cost = output - y
-        return cost.sum(axis=1)
+        cost = (output - y) ** 2
+        return cost.sum(axis=1).sum(axis=0)
 
     def backward_propagation(self, expected):
         # db = [np.zeros(b.shape) for b in self.biases]
@@ -142,15 +141,16 @@ class Network:
                     errors.append(expected[j] - neuron['a'])
             for j in range(len(layer)):
                 neuron = layer[j]
-                neuron['delta'] = errors[j] * neuron['a']
+                neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
 
-    def update_weights(self, row, lr):
+    def update_weights(self, data, lr):
         for i in range(len(self.network)):
-            inputs = row[:-1]
+            inputs = data[:-1]
             if i != 0:
-                inputs = [neuron['a'] for neuron in self.network[i - 1]]
+                inputs = [neuronluy['a'] for neuron in self.network[i - 1]]
             for neuron in self.network[i]:
-                for j in range(len(inputs)):
+                for j in range(len(inputs.columns)):
+                    # print (j, neuron['weights'], neuron['delta'])
                     # print (j, len(neuron['weights']), len(inputs))
                     neuron['weights'][j] += lr * neuron['delta'] * inputs[j]
                 neuron['weights'][-1] += lr * neuron['delta']
@@ -177,6 +177,8 @@ class Network:
         for epoch in range(epochs):
             outputs = self.forward_propagation(std_data)
             error = self.ft_error_evaluation(outputs, y)
+            self.backward_propagation(y)
+            # self.update_weights(std_data, lr)
             # for row in data.iterrows():
             #     index, batch = row
             #     inputs = batch.tolist()
@@ -190,7 +192,7 @@ class Network:
             #     sum_err += sum([(expected[i] - outputs[i]) ** 2 for i in range(len(expected))])
             #     self.backward_propagation(expected)
             #     self.update_weights(inputs, lr)
-            print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, sum_err))
+            print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, error))
         # t = 0
         # f = 0
         # df = pd.read_csv('data_test.csv', sep=',')
