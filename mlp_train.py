@@ -85,7 +85,6 @@ class Network:
         for layer in self.network:
             l += 1
             new_inputs = []
-            print (inputs)
             for neuron in layer:
                 z = np.dot(inputs, neuron['weights'])
                 # z = self.activate(neuron['weights'], inputs)
@@ -103,7 +102,7 @@ class Network:
     def backward_propagation(self, expected):
         for i in reversed(range(len(self.network))):
             layer = self.network[i]
-            errors = list()
+            errors = []
             if i != len(self.network) - 1:
                 for j in range(len(layer)):
                     error = float(0)
@@ -141,14 +140,6 @@ class Network:
         return outputs
 
     def gardient_descent(self, data, epochs, lr, batch_size):
-        # y = data.iloc[:, 1:2]
-        # row = [1, 0]
-        # exepected = [0, 1]
-        # output = self.forward_propagation(row)
-        # self.backward_propagation(exepected)
-        # for layer in self.network:
-        #     print(layer)
-        # print (output)
         y = self.build_excpected(data)
         sum_err = 0
         data = data.iloc[:, 1:]
@@ -159,33 +150,20 @@ class Network:
             error = self.ft_error_evaluation(outputs, y)
             self.backward_propagation(y)
             self.update_weights(std_data, lr)
-            # for row in data.iterrows():
-            #     index, batch = row
-            #     inputs = batch.tolist()
-            #     if inputs[0] == 'M':
-            #         expected = [0, 1]
-            #     else:
-            #         expected = [1, 0]
-            #     del inputs[0]
-            #     std_inputs = self.normalize_dataset(inputs, minmax)
-            #     outputs = self.forward_propagation(std_inputs)
-            #     sum_err += sum([(expected[i] - outputs[i]) ** 2 for i in range(len(expected))])
-            #     self.backward_propagation(expected)
-            #     self.update_weights(inputs, lr)
             print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, error))
-        df = pd.read_csv('data_test.csv', sep=',')
-        df = df.dropna()
-        df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        y_test = self.build_excpected(df)
-        data_test = df.iloc[:, 1:]
-        std_data_test = self.normalize_dataset(data_test, minmax)
-        prediction = self.predict(std_data_test)
-        # print (prediction.idxmax(axis=1))
-        # print (y_test.idxmax(axis=1))
-        err = (prediction.idxmax(axis=1) - y_test.idxmax(axis=1)) ** 2
-        # print (prediction.idxmax(axis=1))
-        true = len(y_test) - err.sum(axis=0)
-        print (100 * true / len(y_test), true, len(y_test))
+        # df = pd.read_csv('data_test.csv', sep=',')
+        # df = df.dropna()
+        # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
+        # y_test = self.build_excpected(df)
+        # data_test = df.iloc[:, 1:]
+        # std_data_test = self.normalize_dataset(data_test, minmax)
+        # prediction = self.predict(std_data_test)
+        # # print (prediction.idxmax(axis=1))
+        # # print (y_test.idxmax(axis=1))
+        # err = (prediction.idxmax(axis=1) - y_test.idxmax(axis=1)) ** 2
+        # # print (prediction.idxmax(axis=1))
+        # true = len(y_test) - err.sum(axis=0)
+        # print (100 * true / len(y_test), true, len(y_test))
         # if (max(prediction) == prediction[0] and expected[0] == 1) or (max(prediction) == prediction[1] and expected[1] == 1):
         #     t += 1
         # else:
@@ -210,7 +188,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=200, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.01, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
