@@ -132,8 +132,8 @@ class Network:
                 inputs = pd.DataFrame([neuron['a'] for neuron in self.network[i - 1]]).T
             for neuron in self.network[i]:
                 for j in range(len(neuron['weights'])):
-                    neuron['weights'][j] += (lr / len(neuron['a'])) * np.dot(neuron['delta'].T, inputs).sum(axis=0)
-                neuron['weights'][-1] += lr * neuron['delta'].sum(axis=0)
+                    neuron['weights'][j] += (lr / len(neuron['delta'])) * np.dot(neuron['delta'].T, inputs).sum(axis=0)
+                neuron['weights'][-1] += (lr / len(neuron['delta'])) * neuron['delta'].sum(axis=0)
 
     def predict(self, inputs):
         outputs = self.forward_propagation(inputs)
@@ -188,8 +188,8 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
-args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.01, type=float)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=300, type=int)
+args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.05, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
 args = args.parse_args()
