@@ -144,16 +144,22 @@ class Network:
                 neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
 
     def update_weights(self, data, lr):
+        # for i in range(len(self.network)):
+        #     inputs = data[:-1]
+        #     if i != 0:
+        #         inputs = [neuron['a'] for neuron in self.network[i - 1]]
+        #     for neuron in self.network[i]:
+        #         for j in range(len(inputs.columns)):
+        #             neuron['weights'][j] += lr * neuron['delta'] * inputs[j]
+        #         neuron['weights'][-1] += lr * neuron['delta']
         for i in range(len(self.network)):
-            inputs = data[:-1]
+            inputs = data
             if i != 0:
-                inputs = [neuronluy['a'] for neuron in self.network[i - 1]]
+                inputs = pd.DataFrame([neuron['a'] for neuron in self.network[i - 1]]).T
             for neuron in self.network[i]:
-                for j in range(len(inputs.columns)):
-                    # print (j, neuron['weights'], neuron['delta'])
-                    # print (j, len(neuron['weights']), len(inputs))
-                    neuron['weights'][j] += lr * neuron['delta'] * inputs[j]
-                neuron['weights'][-1] += lr * neuron['delta']
+                for j in range(len(neuron['weights'])):
+                    neuron['weights'][j] += (lr / len(neuron['a'])) * np.dot(neuron['delta'].T, inputs).sum(axis=0)
+                neuron['weights'][-1] += lr * neuron['delta'].sum(axis=0)
 
     def predict(self, row):
         outputs = self.forward_propagation(row)
@@ -178,7 +184,7 @@ class Network:
             outputs = self.forward_propagation(std_data)
             error = self.ft_error_evaluation(outputs, y)
             self.backward_propagation(y)
-            # self.update_weights(std_data, lr)
+            self.update_weights(std_data, lr)
             # for row in data.iterrows():
             #     index, batch = row
             #     inputs = batch.tolist()
@@ -229,7 +235,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=2, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.01, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
