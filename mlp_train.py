@@ -46,14 +46,8 @@ class Network:
         return minmax
 
     def normalize_dataset(self, dataset, minmax):
-        normalized_data = (dataset-dataset.min()) / (dataset.max() - dataset.min())
+        normalized_data = (dataset - dataset.min()) / (dataset.max() - dataset.min())
         return normalized_data
-        # i = 0
-        # for elem in dataset:
-        #     std_elem = (elem - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
-        #     data.append(std_elem)
-        #     i += 1
-        # return data
 
     def ft_standardize(self, matrix):
         print (matrix)
@@ -91,6 +85,7 @@ class Network:
         for layer in self.network:
             l += 1
             new_inputs = []
+            print (inputs)
             for neuron in layer:
                 z = np.dot(inputs, neuron['weights'])
                 # z = self.activate(neuron['weights'], inputs)
@@ -106,26 +101,6 @@ class Network:
         return cost.sum(axis=1).sum(axis=0)
 
     def backward_propagation(self, expected):
-        # db = [np.zeros(b.shape) for b in self.biases]
-        # dw = [np.zeros(w.shape) for w in self.weights]
-        # activation = x
-        # activations = [x]
-        # zs = []
-        # for b, w in zip(self.biases, self.weights):
-        #     z = np.dot(w, activation) + b
-        #     zs.append(z)
-        #     activation = self.sigmoid(z)
-        #     activations.append(activation)
-        # error = activations[-1] - y
-        # delta = error * self.sigmoid_prime(zs[-1])
-        # db[-1] = d
-        # dw[-1] = np.dot(d, activations[-2].T)
-        # for l in range(2, self.num_layers):
-        #     z = zs[-1]
-        #     d = np.dot(self.weights[-l + 1].T, d) * self.sigmoid_prime(z)
-        #     db[-1] = d
-        #     dw[-1] = np.dot(d, activations[-l - 1].T)
-        # return (db, dw)
         for i in reversed(range(len(self.network))):
             layer = self.network[i]
             errors = list()
@@ -161,12 +136,11 @@ class Network:
                     neuron['weights'][j] += (lr / len(neuron['a'])) * np.dot(neuron['delta'].T, inputs).sum(axis=0)
                 neuron['weights'][-1] += lr * neuron['delta'].sum(axis=0)
 
-    def predict(self, row):
-        outputs = self.forward_propagation(row)
+    def predict(self, inputs):
+        outputs = self.forward_propagation(inputs)
         return outputs
 
     def gardient_descent(self, data, epochs, lr, batch_size):
-        n = len(data)
         # y = data.iloc[:, 1:2]
         # row = [1, 0]
         # exepected = [0, 1]
@@ -199,11 +173,24 @@ class Network:
             #     self.backward_propagation(expected)
             #     self.update_weights(inputs, lr)
             print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, error))
-        # t = 0
-        # f = 0
-        # df = pd.read_csv('data_test.csv', sep=',')
-        # df = df.dropna()
-        # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
+        df = pd.read_csv('data_test.csv', sep=',')
+        df = df.dropna()
+        df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
+        y_test = self.build_excpected(df)
+        data_test = df.iloc[:, 1:]
+        std_data_test = self.normalize_dataset(data_test, minmax)
+        prediction = self.predict(std_data_test)
+        # print (prediction.idxmax(axis=1))
+        # print (y_test.idxmax(axis=1))
+        err = (prediction.idxmax(axis=1) - y_test.idxmax(axis=1)) ** 2
+        # print (prediction.idxmax(axis=1))
+        true = len(y_test) - err.sum(axis=0)
+        print (100 * true / len(y_test), true, len(y_test))
+        # if (max(prediction) == prediction[0] and expected[0] == 1) or (max(prediction) == prediction[1] and expected[1] == 1):
+        #     t += 1
+        # else:
+        #     f += 1
+        # print ('Accuracy :', t * 100 / (t + f))
         # for row in df.iterrows():
         #     index, batch = row
         #     test = batch.tolist()
@@ -220,22 +207,10 @@ class Network:
         #         f += 1
         # print ('Accuracy :', t * 100 / (t + f))
 
-        # for j in range(epochs):
-        #     # np.random.shuffle(data)
-        #     batches = []
-        #     for k in range(0, n, batch_size):
-        #         batches.append(data[k:k+batch_size])
-        #     for batch in batches:
-        #         # iterate over training examples of batch
-        #         exit ()
-        #     print ("Epoch ", j)
-        #     # self.forward_propagation(data)
-        #     self.backward_propagation(data, y)
-
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=200, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.01, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
