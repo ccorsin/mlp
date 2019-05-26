@@ -87,6 +87,7 @@ class Network:
             new_inputs = []
             for neuron in layer:
                 z = np.dot(inputs, neuron['weights'])
+                # print (neuron['weights'])
                 # z = self.activate(neuron['weights'], inputs)
                 neuron['a'] = self.sigmoid(z)
                 new_inputs.append(neuron['a'])
@@ -100,10 +101,12 @@ class Network:
         return cost.sum(axis=1).sum(axis=0)
 
     def backward_propagation(self, expected):
+        end = True
         for i in reversed(range(len(self.network))):
             layer = self.network[i]
             errors = []
             if i != len(self.network) - 1:
+                end = False
                 for j in range(len(layer)):
                     error = float(0)
                     for neuron in self.network[i + 1]:
@@ -112,10 +115,15 @@ class Network:
             else:
                 for j in range(len(layer)):
                     neuron = layer[j]
-                    errors.append(expected[j] - neuron['a'])
+                    # print ('ex', expected.iloc[:,j].to_list(), 'neuron', neuron['a'], 'diff', expected.iloc[:,j].to_list() - neuron['a'])
+                    # # ex = [expected.iloc[1,:],]*len(neuron['a'])
+                    errors.append(expected.iloc[:,j].to_list() - neuron['a'])
             for j in range(len(layer)):
                 neuron = layer[j]
+                # if end == True:
+                #     print ('error', errors[j], 'neuron',  neuron['a'], 'delta', errors[j] * neuron['a'])
                 neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
+                # neuron['delta'] = errors[j] * neuron['a']
 
     def update_weights(self, data, lr):
         # for i in range(len(self.network)):
@@ -141,7 +149,6 @@ class Network:
 
     def gardient_descent(self, data, epochs, lr, batch_size):
         y = self.build_excpected(data)
-        sum_err = 0
         data = data.iloc[:, 1:]
         minmax = self.ft_get_stats(data)
         std_data = self.normalize_dataset(data, minmax)
@@ -150,6 +157,9 @@ class Network:
             error = self.ft_error_evaluation(outputs, y)
             self.backward_propagation(y)
             self.update_weights(std_data, lr)
+            # for layer in self.network:
+            #     for neuron in layer:
+            #         print (neuron)
             print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, error))
         # df = pd.read_csv('data_test.csv', sep=',')
         # df = df.dropna()
@@ -188,7 +198,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=300, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=200, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.05, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
