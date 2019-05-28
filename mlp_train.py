@@ -25,7 +25,7 @@ class Train:
         # sns.pairplot(self.data, hue = 'M')
         # plt.tight_layout()
         # plt.savefig('pair_plot_selected.pdf')
-        Network([22, 6, 4, 2]).gardient_descent(self.data, self.epochs, self.lr, self.batch_size)
+        Network([23, 6, 4, 2]).gardient_descent(self.data, self.epochs, self.lr, self.batch_size)
 
 class Network:
     def __init__(self, sizes):
@@ -34,9 +34,11 @@ class Network:
         self.network = list()
         i = 1
         while i < self.num_layers:
-            layer = [{'weights':[random() for j in range(self.sizes[i - 1] + 1)]} for j in range(self.sizes[i])]
+            layer = {'W' : np.random.randn(self.sizes[i], self.sizes[i - 1]), 'b' : np.zeros(shape=(self.sizes[i], 1))}
+            # layer = [{'weights':[random() for j in range(self.sizes[i - 1] + 1)]} for j in range(self.sizes[i])]
             self.network.append(layer)
             i += 1
+        # print (self.network)
 
     def ft_get_stats(self, matrix):
         minmax = list()
@@ -66,12 +68,12 @@ class Network:
         return df_ex
 
 
-    def activate(self, weights, inputs):
-        b = weights[-1]
-        a = 0.0
-        for i in range(len(weights) - 1):
-            a += weights[i] * inputs[i]
-        return a + b
+    # def activate(self, weights, inputs):
+    #     b = weights[-1]
+    #     a = 0.0
+    #     for i in range(len(weights) - 1):
+    #         a += weights[i] * inputs[i]
+    #     return a + b
 
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
@@ -82,23 +84,36 @@ class Network:
     def forward_propagation(self, data):
         inputs = data
         l = 0
+        caches = []
         for layer in self.network:
             l += 1
-            new_inputs = []
-            for neuron in layer:
-                z = np.dot(inputs, neuron['weights'])
-                # print (neuron['weights'])
-                # z = self.activate(neuron['weights'], inputs)
-                neuron['a'] = self.sigmoid(z)
-                new_inputs.append(neuron['a'])
-            if l < len(self.network):
-                new_inputs.append(np.ones(len(inputs)))
-            inputs = pd.DataFrame(new_inputs).T
-        return inputs
+            inputs_prev = inputs
+            Z = np.dot(inputs, layer['W'].T) + layer['b'].T
+            layer['A'] = self.sigmoid(Z)
+            inputs = layer['A']
+            cache = (inputs, layer['W'], layer['b'])
+            caches.append(cache)
+            # new_inputs = []
+            # for neuron in layer:
+            #     z = np.dot(inputs, neuron['weights'])
+            #     # print (neuron['weights'])
+            #     neuron['a'] = self.sigmoid(z)
+            #     new_inputs.append(neuron['a'])
+            # if l < len(self.network):
+            #     new_inputs.append(np.ones(len(inputs)))
+            # inputs = pd.DataFrame(new_inputs).T
+        return inputs, caches
 
-    def ft_error_evaluation(self, output, y):
-        cost = (output - y) ** 2
-        return cost.sum(axis=1).sum(axis=0)
+    # def ft_error_evaluation(self, output, y):
+    #     cost = (output - y) ** 2
+    #     return cost.sum(axis=1).sum(axis=0)
+
+    def ft_cost_evaluation(self, output, y):
+        m = y.shape[1]
+        cost = (-1 / m) * np.sum(np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)), axis=None)        
+        cost = np.squeeze(cost)
+        print (cost)
+        return cost
 
     def backward_propagation(self, expected):
         end = True
@@ -122,8 +137,8 @@ class Network:
                 neuron = layer[j]
                 # if end == True:
                 #     print ('error', errors[j], 'neuron',  neuron['a'], 'delta', errors[j] * neuron['a'])
-                neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
-                # neuron['delta'] = errors[j] * neuron['a']
+                # neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
+                neuron['delta'] = errors[j] * neuron['a']
 
     def update_weights(self, data, lr):
         # for i in range(len(self.network)):
@@ -153,14 +168,15 @@ class Network:
         minmax = self.ft_get_stats(data)
         std_data = self.normalize_dataset(data, minmax)
         for epoch in range(epochs):
-            outputs = self.forward_propagation(std_data)
-            error = self.ft_error_evaluation(outputs, y)
-            self.backward_propagation(y)
-            self.update_weights(std_data, lr)
+            outputs, caches = self.forward_propagation(std_data)
+            cost = self.ft_cost_evaluation(outputs, y)
+            # print (cost)
+            # self.backward_propagation(y)
+            # self.update_weights(std_data, lr)
             # for layer in self.network:
             #     for neuron in layer:
             #         print (neuron)
-            print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, error))
+            # print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, cost))
         # df = pd.read_csv('data_test.csv', sep=',')
         # df = df.dropna()
         # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
