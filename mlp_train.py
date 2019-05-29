@@ -111,34 +111,61 @@ class Network:
     def ft_cost_evaluation(self, output, y):
         m = y.shape[1]
         cost = (-1 / m) * np.sum(np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)), axis=None)        
-        cost = np.squeeze(cost)
-        print (cost)
+        # cost = np.squeeze(cost.sum(axis=0))
         return cost
 
-    def backward_propagation(self, expected):
-        end = True
+    def ft_linear_backward(self, dZ, cache):
+        A, W, b = cache
+        m = A.shape[1]
+
+        dW = np.dot(dZ, cache[0].T) / m
+        db = np.squeeze(np.sum(dZ, axis=1, keepdims=True)) / m
+        dA = np.dot(cache[1].T, dZ)
+        return (dA, dW, db)
+
+    def backward_propagation(self, output, y, caches):
+        # end = True
+        grads = {}
+        m = y.shape[1]
+        dA = - (np.divide(y, output) - np.divide(1 - y, 1 - output))
+        cache = caches[-1]
         for i in reversed(range(len(self.network))):
             layer = self.network[i]
             errors = []
             if i != len(self.network) - 1:
-                end = False
-                for j in range(len(layer)):
-                    error = float(0)
-                    for neuron in self.network[i + 1]:
-                        error += (neuron['weights'][j] * neuron['delta'])
-                    errors.append(error)
+                current_cache = caches[i]
+                #WIP - elements a POSER
+                sp = self.sigmoid_prime(current_cache[0])
+                delta = np.dot(self.weights[i].T, delta) * sp
+                grads['dA'] = np.dot(cache[1].T, dZ)
+                grads['dW'] = np.dot(dZ, cache[0].T) / m
+                grads['db'] = np.squeeze(np.sum(dZ, axis=1, keepdims=True)) / m
+            #     end = False
+            #     for j in range(len(layer)):
+            #         error = float(0)
+            #         for neuron in self.network[i + 1]:
+            #             error += (neuron['weights'][j] * neuron['delta'])
+                    # errors.append(error)
             else:
-                for j in range(len(layer)):
-                    neuron = layer[j]
-                    # print ('ex', expected.iloc[:,j].to_list(), 'neuron', neuron['a'], 'diff', expected.iloc[:,j].to_list() - neuron['a'])
-                    # # ex = [expected.iloc[1,:],]*len(neuron['a'])
-                    errors.append(expected.iloc[:,j].to_list() - neuron['a'])
-            for j in range(len(layer)):
-                neuron = layer[j]
-                # if end == True:
-                #     print ('error', errors[j], 'neuron',  neuron['a'], 'delta', errors[j] * neuron['a'])
-                # neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
-                neuron['delta'] = errors[j] * neuron['a']
+                current_cache = caches[-1]
+                dA = current_cache[0]
+                delta = (output - y) * self.sigmoid_prime(dA)
+                grads['dA'] = np.dot(cache[1].T, delta)
+                grads['dW'] = np.dot(delta, cache[0].T) / m
+                grads['db'] = np.squeeze(np.sum(delta, axis=1, keepdims=True)) / m
+        return grads
+
+            #     for j in range(len(layer)):
+            #         neuron = layer[j]
+            #         # print ('ex', expected.iloc[:,j].to_list(), 'neuron', neuron['a'], 'diff', expected.iloc[:,j].to_list() - neuron['a'])
+            #         # # ex = [expected.iloc[1,:],]*len(neuron['a'])
+            #         errors.append(expected.iloc[:,j].to_list() - neuron['a'])
+            # for j in range(len(layer)):
+            #     neuron = layer[j]
+            #     # if end == True:
+            #     #     print ('error', errors[j], 'neuron',  neuron['a'], 'delta', errors[j] * neuron['a'])
+            #     # neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
+            #     neuron['delta'] = errors[j] * neuron['a']
 
     def update_weights(self, data, lr):
         # for i in range(len(self.network)):
@@ -170,8 +197,7 @@ class Network:
         for epoch in range(epochs):
             outputs, caches = self.forward_propagation(std_data)
             cost = self.ft_cost_evaluation(outputs, y)
-            # print (cost)
-            # self.backward_propagation(y)
+            self.backward_propagation(outputs, y, caches)
             # self.update_weights(std_data, lr)
             # for layer in self.network:
             #     for neuron in layer:
@@ -214,7 +240,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=200, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=1, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.05, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
