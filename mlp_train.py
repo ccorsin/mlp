@@ -126,25 +126,32 @@ class Network:
         m = y.shape[1]
         dA = - (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
-        for i in reversed(range(len(self.network))):
+        dZ = dA * self.sigmoid_prime(cache[0])
+        grads = {}
+        grads['dW'] = np.dot(dZ.T, caches[-2][0]) / m
+        grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+        dA_previous = np.dot(dZ, cache[1])
+        gradients.append(grads)
+        for i in reversed(range(len(self.network) - 1)):
             grads = {}
-            if i != len(self.network) - 1:
-                current_cache = caches[i]
-                dZ = dA_previous * self.sigmoid_prime(current_cache[0])
-                previous_cache = caches[i - 1]
-                grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
-                grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
-                grads['dA'] = dA_previous
-                dA_previous =  np.dot(dZ, current_cache[1])
-            else:
-                current_cache = caches[-1]
-                previous_cache = caches[-2]
-                dZ = dA * self.sigmoid_prime(current_cache[0])
-                grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
-                grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
-                dA_previous = np.dot(dZ, current_cache[1])
-                grads['dA'] = dA
+            # if i != len(self.network) - 1:
+            current_cache = caches[i]
+            dZ = dA_previous * self.sigmoid_prime(current_cache[0])
+            previous_cache = caches[i - 1]
+            grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
+            grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+            grads['dA'] = dA_previous
+            dA_previous =  np.dot(dZ, current_cache[1])
             gradients.insert(0, grads)
+            # else:
+            #     current_cache = caches[-1]
+            #     previous_cache = caches[-2]
+            #     dZ = dA * self.sigmoid_prime(current_cache[0])
+            #     grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
+            #     grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+            #     dA_previous = np.dot(dZ, current_cache[1])
+            #     grads['dA'] = dA
+            # gradients.insert(0, grads)
         return gradients
 
     def update_weights(self, data, lr, gradient):
