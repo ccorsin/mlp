@@ -124,7 +124,7 @@ class Network:
         return (dA, dW, db)
 
     def backward_propagation(self, output, y, caches):
-        # end = True
+        gradients = []
         grads = {}
         m = y.shape[1]
         dA = - (np.divide(y, output) - np.divide(1 - y, 1 - output))
@@ -134,12 +134,13 @@ class Network:
             errors = []
             if i != len(self.network) - 1:
                 current_cache = caches[i]
-                #WIP - elements a POSER
-                sp = self.sigmoid_prime(current_cache[0])
-                delta = np.dot(self.weights[i].T, delta) * sp
-                grads['dA'] = np.dot(cache[1].T, dZ)
-                grads['dW'] = np.dot(dZ, cache[0].T) / m
-                grads['db'] = np.squeeze(np.sum(dZ, axis=1, keepdims=True)) / m
+                previous_cache = caches[i - 1]
+                dZ = dA_previous * self.sigmoid_prime(current_cache[0])
+                grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
+                grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+                dA_previous =  np.dot(dZ, current_cache[1])
+                grads['dA'] = dA_previous
+                gradients.append(grads)
             #     end = False
             #     for j in range(len(layer)):
             #         error = float(0)
@@ -148,12 +149,14 @@ class Network:
                     # errors.append(error)
             else:
                 current_cache = caches[-1]
-                dA = current_cache[0]
-                delta = (output - y) * self.sigmoid_prime(dA)
-                grads['dA'] = np.dot(cache[1].T, delta)
-                grads['dW'] = np.dot(delta, cache[0].T) / m
-                grads['db'] = np.squeeze(np.sum(delta, axis=1, keepdims=True)) / m
-        return grads
+                previous_cache = caches[len(caches) - 2]
+                dZ = dA * self.sigmoid_prime(current_cache[0])
+                grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
+                grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+                dA_previous = np.dot(dZ, current_cache[1])
+                grads['dA'] = dA
+                gradients.append(grads)
+        return gradients
 
             #     for j in range(len(layer)):
             #         neuron = layer[j]
