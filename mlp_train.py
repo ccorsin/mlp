@@ -83,10 +83,8 @@ class Network:
 
     def forward_propagation(self, data):
         inputs = data
-        l = 0
         caches = []
         for layer in self.network:
-            l += 1
             inputs_prev = inputs
             Z = np.dot(inputs, layer['W'].T) + layer['b'].T
             layer['A'] = self.sigmoid(Z)
@@ -125,68 +123,42 @@ class Network:
 
     def backward_propagation(self, output, y, caches):
         gradients = []
-        grads = {}
         m = y.shape[1]
         dA = - (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
         for i in reversed(range(len(self.network))):
-            layer = self.network[i]
-            errors = []
+            grads = {}
             if i != len(self.network) - 1:
                 current_cache = caches[i]
-                previous_cache = caches[i - 1]
                 dZ = dA_previous * self.sigmoid_prime(current_cache[0])
+                previous_cache = caches[i - 1]
                 grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
                 grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
-                dA_previous =  np.dot(dZ, current_cache[1])
                 grads['dA'] = dA_previous
-                gradients.append(grads)
-            #     end = False
-            #     for j in range(len(layer)):
-            #         error = float(0)
-            #         for neuron in self.network[i + 1]:
-            #             error += (neuron['weights'][j] * neuron['delta'])
-                    # errors.append(error)
+                dA_previous =  np.dot(dZ, current_cache[1])
             else:
                 current_cache = caches[-1]
-                previous_cache = caches[len(caches) - 2]
+                previous_cache = caches[-2]
                 dZ = dA * self.sigmoid_prime(current_cache[0])
                 grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
                 grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
                 dA_previous = np.dot(dZ, current_cache[1])
                 grads['dA'] = dA
-                gradients.append(grads)
+            gradients.insert(0, grads)
         return gradients
 
-            #     for j in range(len(layer)):
-            #         neuron = layer[j]
-            #         # print ('ex', expected.iloc[:,j].to_list(), 'neuron', neuron['a'], 'diff', expected.iloc[:,j].to_list() - neuron['a'])
-            #         # # ex = [expected.iloc[1,:],]*len(neuron['a'])
-            #         errors.append(expected.iloc[:,j].to_list() - neuron['a'])
-            # for j in range(len(layer)):
-            #     neuron = layer[j]
-            #     # if end == True:
-            #     #     print ('error', errors[j], 'neuron',  neuron['a'], 'delta', errors[j] * neuron['a'])
-            #     # neuron['delta'] = errors[j] * self.sigmoid_prime(neuron['a'])
-            #     neuron['delta'] = errors[j] * neuron['a']
-
-    def update_weights(self, data, lr):
+    def update_weights(self, data, lr, gradient):
         # for i in range(len(self.network)):
-        #     inputs = data[:-1]
-        #     if i != 0:
-        #         inputs = [neuron['a'] for neuron in self.network[i - 1]]
-        #     for neuron in self.network[i]:
-        #         for j in range(len(inputs.columns)):
-        #             neuron['weights'][j] += lr * neuron['delta'] * inputs[j]
-        #         neuron['weights'][-1] += lr * neuron['delta']
+            # inputs = data
+            # if i != 0:
+            #     inputs = pd.DataFrame([neuron['a'] for neuron in self.network[i - 1]]).T
+            # for neuron in self.network[i]:
+            #     for j in range(len(neuron['weights'])):
+            #         neuron['weights'][j] += (lr / len(neuron['delta'])) * np.dot(neuron['delta'].T, inputs).sum(axis=0)
+            #     neuron['weights'][-1] += (lr / len(neuron['delta'])) * neuron['delta'].sum(axis=0)
         for i in range(len(self.network)):
-            inputs = data
-            if i != 0:
-                inputs = pd.DataFrame([neuron['a'] for neuron in self.network[i - 1]]).T
-            for neuron in self.network[i]:
-                for j in range(len(neuron['weights'])):
-                    neuron['weights'][j] += (lr / len(neuron['delta'])) * np.dot(neuron['delta'].T, inputs).sum(axis=0)
-                neuron['weights'][-1] += (lr / len(neuron['delta'])) * neuron['delta'].sum(axis=0)
+            self.network[i]['W'] = self.network[i]['W'] - lr * gradient[i]['dW']
+            self.network[i]['b'] = self.network[i]['b'] - lr * gradient[i]['db']
 
     def predict(self, inputs):
         outputs = self.forward_propagation(inputs)
@@ -200,12 +172,12 @@ class Network:
         for epoch in range(epochs):
             outputs, caches = self.forward_propagation(std_data)
             cost = self.ft_cost_evaluation(outputs, y)
-            self.backward_propagation(outputs, y, caches)
-            # self.update_weights(std_data, lr)
+            gradients = self.backward_propagation(outputs, y, caches)
+            self.update_weights(std_data, lr, gradients)
             # for layer in self.network:
             #     for neuron in layer:
             #         print (neuron)
-            # print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, cost))
+            print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, cost))
         # df = pd.read_csv('data_test.csv', sep=',')
         # df = df.dropna()
         # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
