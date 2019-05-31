@@ -121,6 +121,12 @@ class Network:
         outputs = self.forward_propagation(inputs)
         return outputs
 
+    def evaluate_perfo(self, prediction, y):
+        error = np.sum((np.argmax(prediction, axis=1) - np.argmax(y, axis=1)) ** 2)
+        acc = (len(y) - error) * 100 / len(y)
+        print (error, len(y))
+        return acc
+
     def gardient_descent(self, data, epochs, lr, batch_size):
         y = self.build_excpected(data)
         data = data.iloc[:, 1:]
@@ -132,44 +138,19 @@ class Network:
             gradients = self.backward_propagation(outputs, y, caches)
             self.update_weights(std_data, lr, gradients)
             print('>epoch=%d, lrate=%.3f, cost=%d' % (epoch, lr, np.sum(cost)))
-        # df = pd.read_csv('data_test.csv', sep=',')
-        # df = df.dropna()
-        # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        # y_test = self.build_excpected(df)
-        # data_test = df.iloc[:, 1:]
-        # std_data_test = self.normalize_dataset(data_test, minmax)
-        # prediction = self.predict(std_data_test)
-        # # print (prediction.idxmax(axis=1))
-        # # print (y_test.idxmax(axis=1))
-        # err = (prediction.idxmax(axis=1) - y_test.idxmax(axis=1)) ** 2
-        # # print (prediction.idxmax(axis=1))
-        # true = len(y_test) - err.sum(axis=0)
-        # print (100 * true / len(y_test), true, len(y_test))
-        # if (max(prediction) == prediction[0] and expected[0] == 1) or (max(prediction) == prediction[1] and expected[1] == 1):
-        #     t += 1
-        # else:
-        #     f += 1
-        # print ('Accuracy :', t * 100 / (t + f))
-        # for row in df.iterrows():
-        #     index, batch = row
-        #     test = batch.tolist()
-        #     if test[0] == 'M':
-        #         expected = [0, 1]
-        #     else:
-        #         expected = [1, 0]
-        #     del test[0]
-        #     std_test = self.normalize_dataset(test, minmax)
-        #     prediction = self.predict(std_test)
-        #     if (max(prediction) == prediction[0] and expected[0] == 1) or (max(prediction) == prediction[1] and expected[1] == 1):
-        #         t += 1
-        #     else:
-        #         f += 1
-        # print ('Accuracy :', t * 100 / (t + f))
-
+        df = pd.read_csv('data_test.csv', sep=',')
+        df = df.dropna()
+        df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
+        y_test = self.build_excpected(df).values
+        data_test = df.iloc[:, 1:]
+        std_data_test = self.normalize_dataset(data_test, minmax)
+        prediction, _ = self.predict(std_data_test)
+        accuracy = self.evaluate_perfo(prediction, y_test)
+        print (accuracy)
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=500, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.005, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
