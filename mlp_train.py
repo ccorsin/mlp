@@ -73,6 +73,12 @@ class Network:
     def sigmoid_prime(self, x):
         return x * (1 - x)
 
+    def relu(self,x):
+        return abs(x) * (x > 0)
+    
+    def relu_prime(self, x):
+        return 1. * (x > 0)      
+
     def softmax(self, x):
         e_x = np.exp(x - np.max(x))
         return e_x / np.column_stack((e_x.sum(axis=1),e_x.sum(axis=1)))
@@ -83,13 +89,14 @@ class Network:
         i = 0
         for layer in self.network:
             Z = np.dot(inputs, layer['W'].T) + layer['b'].T
+            layer['Z'] = Z
             if i < len(self.network) - 1:
                 layer['A'] = self.sigmoid(Z)
             else:
                 layer['A'] = self.softmax(Z)
             layer['A_prev'] = inputs
             inputs = layer['A']
-            cache = (inputs, layer['W'], layer['b'], layer['A_prev'])
+            cache = (layer['A'], layer['W'], layer['b'], layer['A_prev'], layer['Z'])
             caches.append(cache)
             i += 1
         return inputs, caches
