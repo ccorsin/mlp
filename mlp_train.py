@@ -85,11 +85,11 @@ class Network:
         inputs = data
         caches = []
         for layer in self.network:
-            inputs_prev = inputs
             Z = np.dot(inputs, layer['W'].T) + layer['b'].T
             layer['A'] = self.sigmoid(Z)
+            layer['A_prev'] = inputs
             inputs = layer['A']
-            cache = (inputs, layer['W'], layer['b'])
+            cache = (inputs, layer['W'], layer['b'], layer['A_prev'])
             caches.append(cache)
             # new_inputs = []
             # for neuron in layer:
@@ -112,14 +112,14 @@ class Network:
         # cost = np.squeeze(cost.sum(axis=0))
         return cost
 
-    def ft_linear_backward(self, dZ, cache):
-        A, W, b = cache
-        m = A.shape[1]
+    # def ft_linear_backward(self, dZ, cache):
+    #     A, W, b = cache
+    #     m = A.shape[1]
 
-        dW = np.dot(dZ, cache[0].T) / m
-        db = np.squeeze(np.sum(dZ, axis=1, keepdims=True)) / m
-        dA = np.dot(cache[1].T, dZ)
-        return (dA, dW, db)
+    #     dW = np.dot(dZ, cache[0].T) / m
+    #     db = np.squeeze(np.sum(dZ, axis=1, keepdims=True)) / m
+    #     dA = np.dot(cache[1].T, dZ)
+    #     return (dA, dW, db)
 
     def backward_propagation(self, output, y, caches):
         gradients = []
@@ -128,8 +128,8 @@ class Network:
         cache = caches[-1]
         dZ = dA * self.sigmoid_prime(cache[0])
         grads = {}
-        grads['dW'] = np.dot(dZ.T, caches[-2][0]) / m
-        grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+        grads['dW'] = np.dot(dZ.T, cache[3]) / m
+        grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
         dA_previous = np.dot(dZ, cache[1])
         gradients.append(grads)
         for i in reversed(range(len(self.network) - 1)):
@@ -137,9 +137,9 @@ class Network:
             # if i != len(self.network) - 1:
             current_cache = caches[i]
             dZ = dA_previous * self.sigmoid_prime(current_cache[0])
-            previous_cache = caches[i - 1]
-            grads['dW'] = np.dot(dZ.T, previous_cache[0]) / m
-            grads['db'] = np.squeeze(np.sum(dZ, axis=1)) / m
+            # previous_cache = caches[i - 1]
+            grads['dW'] = np.dot(dZ.T, current_cache[3]) / m
+            grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
             grads['dA'] = dA_previous
             dA_previous =  np.dot(dZ, current_cache[1])
             gradients.insert(0, grads)
@@ -184,7 +184,7 @@ class Network:
             # for layer in self.network:
             #     for neuron in layer:
             #         print (neuron)
-            print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, lr, cost))
+            print('>epoch=%d, lrate=%.3f, cost=%d' % (epoch, lr, np.sum(cost)))
         # df = pd.read_csv('data_test.csv', sep=',')
         # df = df.dropna()
         # df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
@@ -222,7 +222,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=1, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.05, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
