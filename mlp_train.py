@@ -73,22 +73,30 @@ class Network:
     def sigmoid_prime(self, x):
         return x * (1 - x)
 
+    def softmax(self, x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / np.column_stack((e_x.sum(axis=1),e_x.sum(axis=1)))
+
     def forward_propagation(self, data):
         inputs = data
         caches = []
+        i = 0
         for layer in self.network:
             Z = np.dot(inputs, layer['W'].T) + layer['b'].T
-            layer['A'] = self.sigmoid(Z)
+            if i < len(self.network) - 1:
+                layer['A'] = self.sigmoid(Z)
+            else:
+                layer['A'] = self.softmax(Z)
             layer['A_prev'] = inputs
             inputs = layer['A']
             cache = (inputs, layer['W'], layer['b'], layer['A_prev'])
             caches.append(cache)
+            i += 1
         return inputs, caches
 
     def ft_cost_evaluation(self, output, y):
         m = y.shape[1]
         cost = (-1 / m) * np.sum(np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)), axis=None)        
-        # cost = np.squeeze(cost.sum(axis=0))
         return cost
 
     def backward_propagation(self, output, y, caches):
@@ -150,7 +158,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=500, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=1000, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.005, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
