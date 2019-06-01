@@ -35,7 +35,6 @@ class Network:
         i = 1
         while i < self.num_layers:
             layer = {'W' : np.random.randn(self.sizes[i], self.sizes[i - 1]), 'b' : np.zeros(shape=(self.sizes[i], 1))}
-            # layer = [{'weights':[random() for j in range(self.sizes[i - 1] + 1)]} for j in range(self.sizes[i])]
             self.network.append(layer)
             i += 1
         # print (self.network)
@@ -71,8 +70,11 @@ class Network:
         return 1 / (1 + np.exp(-x))
 
     def sigmoid_prime(self, x):
-        # return x * (1 - x)
-        return (np.exp(-x)) / ((1 + np.exp(-x)) ** 2)
+        return x * (1 - x)
+        # return (np.exp(-x)) / ((1 + np.exp(-x)) ** 2)
+
+    def sigmoid_prime_bis(self, x):
+        return (np.exp(-x)) / ((1 + np.exp(-x)) ** 2) 
 
     def relu(self,x):
         return abs(x) * (x > 0)
@@ -112,7 +114,8 @@ class Network:
         m = y.shape[1]
         dA = - (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
-        dZ = dA * self.sigmoid_prime(cache[4])
+        # difference de cache - et sigprime
+        dZ = dA * self.sigmoid_prime(cache[0])
         grads = {}
         grads['dW'] = np.dot(dZ.T, cache[3]) / m
         grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
@@ -121,7 +124,7 @@ class Network:
         for i in reversed(range(len(self.network) - 1)):
             grads = {}
             cache = caches[i]
-            dZ = dA_previous * self.sigmoid_prime(cache[4])
+            dZ = dA_previous * self.sigmoid_prime_bis(cache[4])
             grads['dW'] = np.dot(dZ.T, cache[3]) / m
             grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
             dA_previous =  np.dot(dZ, cache[1])
@@ -166,8 +169,8 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=2000, type=int)
-args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.001, type=float)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=1000, type=int)
+args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.005, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
 args = args.parse_args()
