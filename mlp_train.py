@@ -71,7 +71,6 @@ class Network:
 
     def sigmoid_prime(self, x):
         return x * (1 - x)
-        # return (np.exp(-x)) / ((1 + np.exp(-x)) ** 2)
 
     def sigmoid_prime_bis(self, x):
         return (np.exp(-x)) / ((1 + np.exp(-x)) ** 2) 
@@ -109,7 +108,7 @@ class Network:
 
     def ft_cost_evaluation(self, output, y):
         m = y.shape[1]
-        output = output + 1e-15
+        # output = output + 1e-15
         cost = (-1 / m) * np.sum(np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)), axis=None)        
         return cost
 
@@ -173,7 +172,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=2000, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=1000, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.0005, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
