@@ -101,7 +101,7 @@ class Network:
 
     def ft_cost_evaluation(self, output, y):
         m = y.shape[1]
-        # output = output + 1e-15
+        output = output + 1e-15
         cost = (-1 / m) * np.sum(np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)), axis=None)        
         return cost
 
