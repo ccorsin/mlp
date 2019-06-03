@@ -11,12 +11,11 @@ import matplotlib.pyplot as plt
 from random import random
 
 class Train:
-    def __init__(self, data, epochs, lr, visu, batch):
+    def __init__(self, data, epochs, lr, visu):
         self.data = data
         self.lr = lr
         self.visu = visu
         self.epochs = epochs
-        self.batch_size = batch
         self.params = []
         self.costs = {}
 
@@ -25,7 +24,8 @@ class Train:
         # sns.pairplot(self.data, hue = 'M')
         # plt.tight_layout()
         # plt.savefig('pair_plot_selected.pdf')
-        Network([23, 6, 4, 2]).gardient_descent(self.data, self.epochs, self.lr, self.batch_size)
+        network = Network([23, 6, 4, 2]).gardient_descent(self.data, self.epochs, self.lr)
+        np.save('network.npy', network)
 
 class Network:
     def __init__(self, sizes):
@@ -50,10 +50,6 @@ class Network:
         normalized_data = (dataset - dataset.min()) / (dataset.max() - dataset.min())
         return normalized_data
 
-    def ft_standardize(self, matrix):
-        print (matrix)
-        return (matrix - matrix.mean()) / matrix.std()
-
     def build_excpected(self, data):
         expected = []
         for row in data.iterrows():
@@ -71,9 +67,6 @@ class Network:
 
     def sigmoid_prime(self, x):
         return x * (1 - x)
-
-    def sigmoid_prime_bis(self, x):
-        return (np.exp(-x)) / ((1 + np.exp(-x)) ** 2) 
 
     def relu(self,x):
         return abs(x) * (x > 0)
@@ -117,7 +110,6 @@ class Network:
         m = y.shape[1]
         dA = -  (1 / m) * (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
-        # difference de cache - et sigprime
         dZ = dA * self.sigmoid_prime(cache[0])
         grads = {}
         grads['dW'] = np.dot(dZ.T, cache[3]) / m
@@ -139,17 +131,7 @@ class Network:
             self.network[i]['W'] = self.network[i]['W'] - lr * gradient[i]['dW']
             self.network[i]['b'] = self.network[i]['b'] - lr * gradient[i]['db']
 
-    def predict(self, inputs):
-        outputs = self.forward_propagation(inputs)
-        return outputs
-
-    def evaluate_perfo(self, prediction, y):
-        error = np.sum((np.argmax(prediction, axis=1) - np.argmax(y, axis=1)) ** 2)
-        acc = (len(y) - error) * 100 / len(y)
-        print (error, len(y))
-        return acc
-
-    def gardient_descent(self, data, epochs, lr, batch_size):
+    def gardient_descent(self, data, epochs, lr):
         y = self.build_excpected(data)
         data = data.iloc[:, 1:]
         minmax = self.ft_get_stats(data)
@@ -160,22 +142,15 @@ class Network:
             gradients = self.backward_propagation(outputs, y, caches)
             self.update_weights(std_data, lr, gradients)
             print('>epoch=%d, lrate=%.3f, cost=%d' % (epoch, lr, np.sum(cost)))
-        df = pd.read_csv('data_test.csv', sep=',')
-        df = df.dropna()
-        df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        y_test = self.build_excpected(df).values
-        data_test = df.iloc[:, 1:]
-        std_data_test = self.normalize_dataset(data_test, minmax)
-        prediction, _ = self.predict(std_data_test)
-        accuracy = self.evaluate_perfo(prediction, y_test)
-        print (accuracy)
+        with open('minmax.json', 'w+') as json_file:  
+            json.dump(minmax, json_file)
+        return self.network
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=1000, type=int)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.0005, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
-args.add_argument("-b", "--batch", help="Adjust batch size", default=10, type=int)
 args = args.parse_args()
 
 if os.path.isfile(args.file):
@@ -183,7 +158,7 @@ if os.path.isfile(args.file):
         df = pd.read_csv(args.file, sep=',')
         df = df.dropna()
         df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        Train(df, args.epoch, args.learning, args.visu, args.batch).train()
+        network = Train(df, args.epoch, args.learning, args.visu).train()
         
     except Exception as e:
         raise(e)
