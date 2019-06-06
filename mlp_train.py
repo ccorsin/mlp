@@ -115,7 +115,10 @@ class Network:
     def ft_precision_evaluation(self, prediction, y):
         tp = np.count_nonzero(np.argmax(prediction, axis=1) + np.argmax(y, axis=1) == 0)
         fp_tp = np.count_nonzero(np.argmax(prediction, axis=1) == 0)
-        precision = tp / (fp_tp)
+        if fp_tp:
+            precision = tp / (fp_tp)
+        else:
+            return 0
         return precision
 
     def backward_propagation(self, output, y, caches):
@@ -157,6 +160,7 @@ class Network:
         plot_val_loss = []
         plot_tr_acc = []
         val_cost = 0
+        tr_prec = 0
         for epoch in range(epochs):
             tr_outputs, caches = self.forward_propagation(tr_set)
             cost = self.ft_cost_evaluation(tr_outputs, tr_y)
@@ -166,10 +170,11 @@ class Network:
             val_outputs, _ = self.forward_propagation(val_set)
             val_cost_previous = val_cost
             val_cost = self.ft_cost_evaluation(val_outputs, val_y)
+            tr_prec_previous = tr_prec
             tr_prec = self.ft_precision_evaluation(tr_outputs, tr_y)
             val_acc = self.ft_acc_evaluation(val_outputs, val_y)
             val_prec = self.ft_precision_evaluation(val_outputs, val_y)
-            if val_cost > val_cost_previous and epoch:
+            if val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous:
                 with open('minmax.json', 'w+') as json_file:  
                     json.dump(minmax, json_file)
                     if visu:
