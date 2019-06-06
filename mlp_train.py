@@ -117,7 +117,7 @@ class Network:
         m = y.shape[0]
         dA = - (1 / m) * (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
-        dZ = dA * self.sigmoid_prime(cache[0])
+        dZ = dA * self.softmax_prime(cache[0])
         grads = {}
         grads['dW'] = np.dot(dZ.T, cache[3]) / m
         grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
