@@ -16,27 +16,29 @@ class Train:
         self.lr = lr
         self.visu = visu
         self.epochs = epochs
-        self.params = []
-        self.costs = {}
 
-    def train(self):
+    def train(self, net):
         # sns.set(style="ticks", color_codes=True)
         # sns.pairplot(self.data, hue = 'M')
         # plt.tight_layout()
         # plt.savefig('pair_plot_selected.pdf')
-        network = Network([23, 6, 4, 2]).gardient_descent(self.data, self.epochs, self.lr)
+        network = Network([23, 6, 4, 2], net).gardient_descent(self.data, self.epochs, self.lr, self.visu)
         np.save('network.npy', network)
 
 class Network:
-    def __init__(self, sizes):
+    def __init__(self, sizes, network):
         self.num_layers = len(sizes)
         self.sizes = sizes
         self.network = list()
         i = 1
-        while i < self.num_layers:
-            layer = {'W' : np.random.randn(self.sizes[i], self.sizes[i - 1]), 'b' : np.zeros(shape=(self.sizes[i], 1))}
-            self.network.append(layer)
-            i += 1
+        if network == False:
+            while i < self.num_layers:
+                layer = {'W' : np.random.randn(self.sizes[i], self.sizes[i - 1]), 'b' : np.zeros(shape=(self.sizes[i], 1))}
+                self.network.append(layer)
+                i += 1
+            np.save('initial_random_network.npy', self.network)
+        else:
+            self.network = np.load(network)
         # print (self.network)
 
     def ft_get_stats(self, matrix):
@@ -100,15 +102,20 @@ class Network:
         return inputs, caches
 
     def ft_cost_evaluation(self, output, y):
-        m = y.shape[1]
+        m = y.shape[0]
         output = output + 1e-15
-        cost = (-1 / m) * np.sum(np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)), axis=None)        
+        cost = (-1 / m) * np.sum((np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)))[:,0])   
         return cost
+
+    def ft_acc_evaluation(self, prediction, y):
+        error = np.sum((np.argmax(prediction, axis=1) - np.argmax(y, axis=1)) ** 2)
+        acc = (len(y) - error) / len(y)
+        return acc
 
     def backward_propagation(self, output, y, caches):
         gradients = []
-        m = y.shape[1]
-        dA = -  (1 / m) * (np.divide(y, output) - np.divide(1 - y, 1 - output))
+        m = y.shape[0]
+        dA = - (1 / m) * (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
         dZ = dA * self.sigmoid_prime(cache[0])
         grads = {}
@@ -131,26 +138,57 @@ class Network:
             self.network[i]['W'] = self.network[i]['W'] - lr * gradient[i]['dW']
             self.network[i]['b'] = self.network[i]['b'] - lr * gradient[i]['db']
 
-    def gardient_descent(self, data, epochs, lr):
+    def gardient_descent(self, data, epochs, lr, visu):
         y = self.build_excpected(data)
         data = data.iloc[:, 1:]
         minmax = self.ft_get_stats(data)
         std_data = self.normalize_dataset(data, minmax)
+        tr_y = y.values[:455, :]
+        val_y = y.values[456:, :]
+        tr_set = std_data.values[:455, :]
+        val_set = std_data.values[456:, :]
+        plot_tr_loss = []
+        plot_val_loss = []
+        plot_tr_acc = []
         for epoch in range(epochs):
-            outputs, caches = self.forward_propagation(std_data)
-            cost = self.ft_cost_evaluation(outputs, y)
-            gradients = self.backward_propagation(outputs, y, caches)
-            self.update_weights(std_data, lr, gradients)
-            print('>epoch=%d, lrate=%.3f, cost=%d' % (epoch, lr, np.sum(cost)))
+            outputs, caches = self.forward_propagation(tr_set)
+            cost = self.ft_cost_evaluation(outputs, tr_y)
+            gradients = self.backward_propagation(outputs, tr_y, caches)
+            self.update_weights(tr_set, lr, gradients)
+            tr_acc = self.ft_acc_evaluation(outputs, tr_y)
+            val_outputs, _ = self.forward_propagation(val_set)
+            val_cost = self.ft_cost_evaluation(val_outputs, val_y)
+            if val_cost < cost and epoch > 1000:
+                with open('minmax.json', 'w+') as json_file:  
+                    json.dump(minmax, json_file)
+                    if visu:
+                        plt.plot(plot_tr_loss)
+                        plt.plot(plot_tr_acc)
+                        plt.plot(plot_val_loss)
+                        plt.show()
+                    np.save('network.npy', self.network)
+                exit()
+            val_acc = self.ft_acc_evaluation(val_outputs, val_y)
+            if visu:
+                plot_tr_loss.append(cost)
+                plot_tr_acc.append(tr_acc)
+                plot_val_loss.append(val_cost)
+            print('>epoch=%d, lrate=%.4f, loss=%.3f, acc=%.3f, val_loss=%.3f, val_acc=%.3f' % (epoch, lr, cost, tr_acc, val_cost, val_acc))
         with open('minmax.json', 'w+') as json_file:  
             json.dump(minmax, json_file)
+        if visu:
+            plt.plot(plot_tr_loss)
+            plt.plot(plot_tr_acc)
+            plt.plot(plot_val_loss)
+            plt.show()
         return self.network
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=100, type=int)
-args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.0005, type=float)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=5000)
+args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.1, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
+args.add_argument("-n", "--net", help="Specific network input", type=str, default=False)
 args = args.parse_args()
 
 if os.path.isfile(args.file):
@@ -158,7 +196,7 @@ if os.path.isfile(args.file):
         df = pd.read_csv(args.file, sep=',')
         df = df.dropna()
         df = df.iloc[:, [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30]]
-        network = Train(df, args.epoch, args.learning, args.visu).train()
+        network = Train(df, args.epoch, args.learning, args.visu).train(args.net)
         
     except Exception as e:
         raise(e)
