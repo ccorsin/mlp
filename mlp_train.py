@@ -204,7 +204,7 @@ class Network:
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
 args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=5000)
-args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.2, type=float)
+args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.1, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-n", "--network", help="Specific network input", type=str, default=False)
 args.add_argument("-d", "--details", help="Display more performance metrics", action="store_true", default=False)
