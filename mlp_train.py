@@ -174,7 +174,7 @@ class Network:
             tr_prec = self.ft_precision_evaluation(tr_outputs, tr_y)
             val_acc = self.ft_acc_evaluation(val_outputs, val_y)
             val_prec = self.ft_precision_evaluation(val_outputs, val_y)
-            if val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous:
+            if math.isnan(val_cost) or (val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous):
                 with open('minmax.json', 'w+') as json_file:  
                     json.dump(minmax, json_file)
                     if visu:
