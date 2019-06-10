@@ -174,16 +174,16 @@ class Network:
             tr_prec = self.ft_precision_evaluation(tr_outputs, tr_y)
             val_acc = self.ft_acc_evaluation(val_outputs, val_y)
             val_prec = self.ft_precision_evaluation(val_outputs, val_y)
-            if math.isnan(val_cost) or (val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous):
-                with open('minmax.json', 'w+') as json_file:  
-                    json.dump(minmax, json_file)
-                    if visu:
-                        plt.plot(plot_tr_loss)
-                        plt.plot(plot_tr_acc)
-                        plt.plot(plot_val_loss)
-                        plt.show()
-                    np.save('network.npy', self.network)
-                exit()
+            # if math.isnan(val_cost) or (val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous):
+                # with open('minmax.json', 'w+') as json_file:  
+                #     json.dump(minmax, json_file)
+                #     if visu:
+                #         plt.plot(plot_tr_loss)
+                #         plt.plot(plot_tr_acc)
+                #         plt.plot(plot_val_loss)
+                #         plt.show()
+                #     np.save('network.npy', self.network)
+                # exit()
             if visu:
                 plot_tr_loss.append(cost)
                 plot_tr_acc.append(tr_acc)
@@ -203,7 +203,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=5000)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=9000)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.1, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-n", "--network", help="Specific network input", type=str, default=False)
