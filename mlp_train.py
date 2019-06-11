@@ -151,16 +151,16 @@ class Network:
         for i in range(len(self.network)):
             self.network[i]['W'] = self.network[i]['W'] - lr * gradient[i]['dW']
             self.network[i]['b'] = np.squeeze(self.network[i]['b']) - lr * gradient[i]['db']
-        if self.check_param_validity() == False:
-            with open('minmax.json', 'w+') as json_file:  
-                json.dump(self.minmax, json_file)
-                # if self.visu:
-                #     plt.plot(plot_tr_loss)
-                #     plt.plot(plot_tr_acc)
-                #     plt.plot(plot_val_loss)
-                #     plt.show()
-                np.save('network.npy', self.previous_network)
-            exit()
+        # if self.check_param_validity() == False:
+        #     with open('minmax.json', 'w+') as json_file:  
+        #         json.dump(self.minmax, json_file)
+        #         # if self.visu:
+        #         #     plt.plot(plot_tr_loss)
+        #         #     plt.plot(plot_tr_acc)
+        #         #     plt.plot(plot_val_loss)
+        #         #     plt.show()
+        #         np.save('network.npy', self.previous_network)
+        #     exit()
 
     def gardient_descent(self, data, epochs, lr, visu, details):
         self.visu = visu
@@ -172,11 +172,10 @@ class Network:
         val_y = y.values[384:, :]
         tr_set = std_data.values[:383, :]
         val_set = std_data.values[384:, :]
-        plot_tr_loss = []
-        plot_val_loss = []
-        plot_tr_acc = []
-        val_loss = 0
-        loss = 0
+        plot_tr_loss, plot_val_loss, plot_tr_acc = ([] for i in range(3))
+        if details:
+            plot_tr_prec, plot_val_acc, plot_val_prec = ([] for i in range(3))
+        val_loss = loss = 0
         for epoch in range(epochs):
             tr_outputs, caches = self.forward_propagation(tr_set)
             loss_previous = loss
@@ -190,15 +189,20 @@ class Network:
             tr_prec = self.ft_precision_evaluation(tr_outputs, tr_y)
             val_acc = self.ft_acc_evaluation(val_outputs, val_y)
             val_prec = self.ft_precision_evaluation(val_outputs, val_y)
-            if math.isnan(val_loss) or math.isnan(loss) or (val_loss > val_loss_previous and loss > loss_previous and loss_previous):
+            if math.isnan(val_loss) or math.isnan(loss) or (val_loss > val_loss_previous and loss_previous) or loss_previous - loss > 0.1:
                 with open('minmax.json', 'w+') as json_file:  
                     json.dump(self.minmax, json_file)
                     if self.visu:
                         del plot_tr_loss[-1]
                         del plot_val_loss[-1]
-                        plt.plot(plot_tr_loss)
-                        plt.plot(plot_tr_acc)
-                        plt.plot(plot_val_loss)
+                        plt.plot(plot_tr_loss, label='loss')
+                        plt.plot(plot_tr_acc, label='accuracy')
+                        plt.plot(plot_val_loss, label='validation loss')
+                        if details:
+                            plt.plot(plot_tr_prec, label='precision')
+                            plt.plot(plot_val_acc, label='validation accuracy')
+                            plt.plot(plot_val_prec, label='validation precision')
+                        plt.legend()
                         plt.show()
                     np.save('network.npy', self.previous_network)
                 exit()
@@ -206,6 +210,10 @@ class Network:
                 plot_tr_loss.append(loss)
                 plot_tr_acc.append(tr_acc)
                 plot_val_loss.append(val_loss)
+                if details:
+                    plot_tr_prec.append(tr_prec)
+                    plot_val_acc.append(val_acc)
+                    plot_val_prec.append(val_prec)
             if details:
                 print('>epoch=%d, lrate=%.2f, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, lr, loss, tr_acc, tr_prec, val_loss, val_acc, val_prec))
             else:
@@ -213,16 +221,22 @@ class Network:
         with open('minmax.json', 'w+') as json_file:  
             json.dump(self.minmax, json_file)
         if visu:
-            plt.plot(plot_tr_loss)
-            plt.plot(plot_tr_acc)
-            plt.plot(plot_val_loss)
+            plt.plot(plot_tr_loss, label='loss')
+            plt.plot(plot_tr_acc, label='accuracy')
+            plt.plot(plot_val_loss, label='validation loss')
+            if details:
+                plt.plot(plot_tr_prec, label='precision')
+                plt.plot(plot_val_acc, label='validation accuracy')
+                plt.plot(plot_val_prec, label='validation precision')
+        if visu:
+            plt.legend()
             plt.show()
         return self.network
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
 args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=25000)
-args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.08, type=float)
+args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.1, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-n", "--network", help="Specific network input", type=str, default=False)
 args.add_argument("-d", "--details", help="Display more performance metrics", action="store_true", default=False)
