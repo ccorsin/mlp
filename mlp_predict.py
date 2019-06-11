@@ -6,6 +6,12 @@ import csv
 import pandas as pd
 import numpy as np
 
+def ft_cost_evaluation(output, y):
+    m = y.shape[0]
+    output = output + 1e-15
+    cost = (-1 / m) * np.sum((np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)))[:,0])   
+    return cost
+
 def normalize_dataset(dataset, minmax):
     normalized_data = (dataset - dataset.min()) / (dataset.max() - dataset.min())
     return normalized_data
@@ -54,7 +60,6 @@ def predict(inputs, network):
 def evaluate_perfo(prediction, y):
     error = np.sum((np.argmax(prediction, axis=1) - np.argmax(y, axis=1)) ** 2)
     acc = (len(y) - error) * 100 / len(y)
-    print (error, len(y))
     return acc
 
 if __name__ == '__main__':
@@ -98,6 +103,6 @@ if __name__ == '__main__':
     data_test = df.iloc[:, 1:]
     std_data_test = normalize_dataset(data_test, minmax)
     prediction, _ = predict(std_data_test, network)
-    accuracy = evaluate_perfo(prediction, y_test)
+    accuracy = ft_cost_evaluation(prediction, y_test)
     print (accuracy)
     

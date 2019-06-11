@@ -22,7 +22,7 @@ class Train:
         # sns.pairplot(self.data, hue = 'M')
         # plt.tight_layout()
         # plt.savefig('pair_plot_selected.pdf')
-        network = Network([23, 6, 4, 2], net).gardient_descent(self.data, self.epochs, self.lr, self.visu, details)
+        network = Network([23, 10, 4, 2], net).gardient_descent(self.data, self.epochs, self.lr, self.visu, details)
         np.save('network.npy', network)
 
 class Network:
@@ -71,7 +71,14 @@ class Network:
         return x * (1 - x)
 
     def relu(self,x):
-        return abs(x) * (x > 0)
+        try:
+            return abs(x) * (x > 0)
+        except Exception as e:
+            print (x)
+            with open('minmax.json', 'w+') as json_file:  
+                json.dump(minmax, json_file)
+            np.save('network.npy', self.previous_network)
+            exit() 
     
     def relu_prime(self, x):
         return 1. * (x > 0)      
@@ -92,6 +99,11 @@ class Network:
             layer['Z'] = Z
             if i < len(self.network) - 1:
                 layer['A'] = self.relu(Z)
+                # if np.isnan(layer['A']).any():
+                    # with open('minmax.json', 'w+') as json_file:  
+                    #     json.dump(minmax, json_file)
+                    #     np.save('network.npy', self.previous_network)
+                    # exit()
             else:
                 layer['A'] = self.softmax(Z)
             layer['A_prev'] = inputs
@@ -103,9 +115,15 @@ class Network:
 
     def ft_cost_evaluation(self, output, y):
         m = y.shape[0]
-        output = output + 1e-15
-        cost = (-1 / m) * np.sum((np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)))[:,0])   
-        return cost
+        output = output + 1e-12
+        try:
+            cost = (-1 / m) * np.sum((np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)))[:,0])   
+            return cost
+        except Exception as e:
+            with open('minmax.json', 'w+') as json_file:  
+                json.dump(minmax, json_file)
+            np.save('network.npy', self.previous_network)
+            exit()
 
     def ft_acc_evaluation(self, prediction, y):
         error = np.sum((np.argmax(prediction, axis=1) - np.argmax(y, axis=1)) ** 2)
@@ -129,7 +147,7 @@ class Network:
         dZ = dA * self.softmax_prime(cache[0])
         grads = {}
         grads['dW'] = np.dot(dZ.T, cache[3]) / m
-        grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
+        grads['db'] = np.squeeze(np.sum(dZ, axis=0) / m)
         dA_previous = np.dot(dZ, cache[1])
         gradients.append(grads)
         for i in reversed(range(len(self.network) - 1)):
@@ -137,25 +155,26 @@ class Network:
             cache = caches[i]
             dZ = dA_previous * self.relu_prime(cache[4])
             grads['dW'] = np.dot(dZ.T, cache[3]) / m
-            grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
+            grads['db'] = np.squeeze(np.sum(dZ, axis=0) / m) 
             dA_previous =  np.dot(dZ, cache[1])
             gradients.insert(0, grads)
         return gradients
 
     def update_weights(self, data, lr, gradient):
+        self.previous_network = self.network
         for i in range(len(self.network)):
             self.network[i]['W'] = self.network[i]['W'] - lr * gradient[i]['dW']
-            self.network[i]['b'] = self.network[i]['b'] - lr * gradient[i]['db']
+            self.network[i]['b'] = np.squeeze(self.network[i]['b']) - lr * gradient[i]['db']
 
     def gardient_descent(self, data, epochs, lr, visu, details):
         y = self.build_excpected(data)
         data = data.iloc[:, 1:]
         minmax = self.ft_get_stats(data)
         std_data = self.normalize_dataset(data, minmax)
-        tr_y = y.values[:455, :]
-        val_y = y.values[456:, :]
-        tr_set = std_data.values[:455, :]
-        val_set = std_data.values[456:, :]
+        tr_y = y.values[:383, :]
+        val_y = y.values[384:, :]
+        tr_set = std_data.values[:383, :]
+        val_set = std_data.values[384:, :]
         plot_tr_loss = []
         plot_val_loss = []
         plot_tr_acc = []
@@ -174,24 +193,25 @@ class Network:
             tr_prec = self.ft_precision_evaluation(tr_outputs, tr_y)
             val_acc = self.ft_acc_evaluation(val_outputs, val_y)
             val_prec = self.ft_precision_evaluation(val_outputs, val_y)
-            # if math.isnan(val_cost) or (val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous):
-                # with open('minmax.json', 'w+') as json_file:  
-                #     json.dump(minmax, json_file)
-                #     if visu:
-                #         plt.plot(plot_tr_loss)
-                #         plt.plot(plot_tr_acc)
-                #         plt.plot(plot_val_loss)
-                #         plt.show()
-                #     np.save('network.npy', self.network)
-                # exit()
+            if math.isnan(val_cost) or math.isnan(cost) or (val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous):
+            # if math.isnan(val_cost) or math.isnan(cost):
+                with open('minmax.json', 'w+') as json_file:  
+                    json.dump(minmax, json_file)
+                    if visu:
+                        plt.plot(plot_tr_loss)
+                        plt.plot(plot_tr_acc)
+                        plt.plot(plot_val_loss)
+                        plt.show()
+                    np.save('network.npy', self.previous_network)
+                exit()
             if visu:
                 plot_tr_loss.append(cost)
                 plot_tr_acc.append(tr_acc)
                 plot_val_loss.append(val_cost)
             if details:
-                print('>epoch=%d, lrate=%.4f, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, lr, cost, tr_acc, tr_prec, val_cost, val_acc, val_prec))
+                print('>epoch=%d, lrate=%.1f, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, lr, cost, tr_acc, tr_prec, val_cost, val_acc, val_prec))
             else:
-                print('>epoch=%d, lrate=%.4f, loss=%.3f, val_loss=%.3f' % (epoch, lr, cost, val_cost))
+                print('>epoch=%d, lrate=%.1f, loss=%.3f, val_loss=%.3f' % (epoch, lr, cost, val_cost))
         with open('minmax.json', 'w+') as json_file:  
             json.dump(minmax, json_file)
         if visu:
@@ -203,7 +223,7 @@ class Network:
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=9000)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=25000)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.1, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-n", "--network", help="Specific network input", type=str, default=False)
