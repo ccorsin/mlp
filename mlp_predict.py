@@ -8,8 +8,7 @@ import numpy as np
 
 def ft_cost_evaluation(output, y):
     m = y.shape[0]
-    output = output + 1e-15
-    cost = (-1 / m) * np.sum((np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)))[:,0])   
+    cost = (-1 / m) * np.sum((np.multiply(y, np.log(output + 1e-12)) + np.multiply(1 - y, np.log(1 - output + 1e-12)))[:,0])   
     return cost
 
 def normalize_dataset(dataset, minmax):
