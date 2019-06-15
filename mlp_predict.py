@@ -6,7 +6,7 @@ import csv
 import pandas as pd
 import numpy as np
 
-def ft_cost_evaluation(output, y):
+def ft_loss_evaluation(output, y):
     m = y.shape[0]
     cost = (-1 / m) * np.sum((np.multiply(y, np.log(output + 1e-12)) + np.multiply(1 - y, np.log(1 - output + 1e-12)))[:,0])   
     return cost
@@ -102,6 +102,6 @@ if __name__ == '__main__':
     data_test = df.iloc[:, 1:]
     std_data_test = normalize_dataset(data_test, minmax)
     prediction, _ = predict(std_data_test, network)
-    accuracy = ft_cost_evaluation(prediction, y_test)
-    print (accuracy)
+    loss = ft_loss_evaluation(prediction, y_test)
+    print ('loss = %.2f' % loss)
     

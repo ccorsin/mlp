@@ -215,9 +215,9 @@ class Network:
                     plot_val_acc.append(val_acc)
                     plot_val_prec.append(val_prec)
             if details:
-                print('>epoch=%d, lrate=%.2f, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, lr, loss, tr_acc, tr_prec, val_loss, val_acc, val_prec))
+                print('>epoch=%d, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, loss, tr_acc, tr_prec, val_loss, val_acc, val_prec))
             else:
-                print('>epoch=%d, lrate=%.2f, loss=%.3f, val_loss=%.3f' % (epoch, lr, loss, val_loss))
+                print('>epoch=%d, loss=%.3f, val_loss=%.3f' % (epoch, loss, val_loss))
         with open('minmax.json', 'w+') as json_file:  
             json.dump(self.minmax, json_file)
         if visu:
