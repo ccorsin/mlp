@@ -22,7 +22,7 @@ class Train:
         # sns.pairplot(self.data, hue = 'M')
         # plt.tight_layout()
         # plt.savefig('pair_plot_selected.pdf')
-        network = Network([23, 10, 4, 2], net).gardient_descent(self.data, self.epochs, self.lr, self.visu, details)
+        network = Network([23, 6, 4, 2], net).gardient_descent(self.data, self.epochs, self.lr, self.visu, details)
         np.save('network.npy', network)
 
 class Network:
@@ -33,12 +33,13 @@ class Network:
         i = 1
         if network == False:
             while i < self.num_layers:
-                layer = {'W' : np.random.randn(self.sizes[i], self.sizes[i - 1]) * 0.5, 'b' : np.zeros(shape=(self.sizes[i], 1))}
+                layer = {'W' : np.random.randn(self.sizes[i], self.sizes[i - 1]), 'b' : np.zeros(shape=(self.sizes[i], 1))}
                 self.network.append(layer)
                 i += 1
             np.save('initial_random_network.npy', self.network)
         else:
             self.network = np.load(network)
+        # print (self.network)
 
     def ft_get_stats(self, matrix):
         minmax = list()
@@ -47,7 +48,7 @@ class Network:
             minmax.append(stats)
         return minmax
 
-    def normalize_dataset(self, dataset):
+    def normalize_dataset(self, dataset, minmax):
         normalized_data = (dataset - dataset.min()) / (dataset.max() - dataset.min())
         return normalized_data
 
@@ -77,7 +78,7 @@ class Network:
 
     def softmax(self, x):
         e_x = np.exp(x - np.max(x))
-        return e_x / (np.column_stack((e_x.sum(axis=1),e_x.sum(axis=1))) + 1e-20)
+        return e_x / np.column_stack((e_x.sum(axis=1),e_x.sum(axis=1)))
 
     def softmax_prime(self, x):
         return x
@@ -102,7 +103,8 @@ class Network:
 
     def ft_cost_evaluation(self, output, y):
         m = y.shape[0]
-        cost = (-1 / m) * np.sum((np.multiply(y, np.log(output + 1e-12)) + np.multiply(1 - y, np.log(1 - output+ 1e-12)))[:,0])   
+        output = output + 1e-15
+        cost = (-1 / m) * np.sum((np.multiply(y, np.log(output)) + np.multiply(1 - y, np.log(1 - output)))[:,0])   
         return cost
 
     def ft_acc_evaluation(self, prediction, y):
@@ -122,12 +124,12 @@ class Network:
     def backward_propagation(self, output, y, caches):
         gradients = []
         m = y.shape[0]
-        dA = - (1 / m) * (np.divide(y, output + 1e-20) - np.divide(1 - y, 1 - output + 1e-20))
+        dA = - (1 / m) * (np.divide(y, output) - np.divide(1 - y, 1 - output))
         cache = caches[-1]
         dZ = dA * self.softmax_prime(cache[0])
         grads = {}
         grads['dW'] = np.dot(dZ.T, cache[3]) / m
-        grads['db'] = np.squeeze(np.sum(dZ, axis=0) / m)
+        grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
         dA_previous = np.dot(dZ, cache[1])
         gradients.append(grads)
         for i in reversed(range(len(self.network) - 1)):
@@ -135,107 +137,73 @@ class Network:
             cache = caches[i]
             dZ = dA_previous * self.relu_prime(cache[4])
             grads['dW'] = np.dot(dZ.T, cache[3]) / m
-            grads['db'] = np.squeeze(np.sum(dZ, axis=0) / m) 
+            grads['db'] = np.sum(np.squeeze(np.sum(dZ, axis=1))) / m
             dA_previous =  np.dot(dZ, cache[1])
             gradients.insert(0, grads)
         return gradients
-    
-    def check_param_validity(self):
-        for layer in self.network:
-            if np.isnan(layer['W']).any() or np.isnan(layer['b']).any():
-                return False
-        return True
 
     def update_weights(self, data, lr, gradient):
-        self.previous_network = self.network
         for i in range(len(self.network)):
             self.network[i]['W'] = self.network[i]['W'] - lr * gradient[i]['dW']
-            self.network[i]['b'] = np.squeeze(self.network[i]['b']) - lr * gradient[i]['db']
-        # if self.check_param_validity() == False:
-        #     with open('minmax.json', 'w+') as json_file:  
-        #         json.dump(self.minmax, json_file)
-        #         # if self.visu:
-        #         #     plt.plot(plot_tr_loss)
-        #         #     plt.plot(plot_tr_acc)
-        #         #     plt.plot(plot_val_loss)
-        #         #     plt.show()
-        #         np.save('network.npy', self.previous_network)
-        #     exit()
+            self.network[i]['b'] = self.network[i]['b'] - lr * gradient[i]['db']
 
     def gardient_descent(self, data, epochs, lr, visu, details):
-        self.visu = visu
         y = self.build_excpected(data)
         data = data.iloc[:, 1:]
-        self.minmax = self.ft_get_stats(data)
-        std_data = self.normalize_dataset(data)
-        tr_y = y.values[:383, :]
-        val_y = y.values[384:, :]
-        tr_set = std_data.values[:383, :]
-        val_set = std_data.values[384:, :]
-        plot_tr_loss, plot_val_loss, plot_tr_acc = ([] for i in range(3))
-        if details:
-            plot_tr_prec, plot_val_acc, plot_val_prec = ([] for i in range(3))
-        val_loss = loss = 0
+        minmax = self.ft_get_stats(data)
+        std_data = self.normalize_dataset(data, minmax)
+        tr_y = y.values[:455, :]
+        val_y = y.values[456:, :]
+        tr_set = std_data.values[:455, :]
+        val_set = std_data.values[456:, :]
+        plot_tr_loss = []
+        plot_val_loss = []
+        plot_tr_acc = []
+        val_cost = 0
+        tr_prec = 0
         for epoch in range(epochs):
             tr_outputs, caches = self.forward_propagation(tr_set)
-            loss_previous = loss
-            loss = self.ft_cost_evaluation(tr_outputs, tr_y)
+            cost = self.ft_cost_evaluation(tr_outputs, tr_y)
             gradients = self.backward_propagation(tr_outputs, tr_y, caches)
             self.update_weights(tr_set, lr, gradients)
             tr_acc = self.ft_acc_evaluation(tr_outputs, tr_y)
             val_outputs, _ = self.forward_propagation(val_set)
-            val_loss_previous = val_loss
-            val_loss = self.ft_cost_evaluation(val_outputs, val_y)
+            val_cost_previous = val_cost
+            val_cost = self.ft_cost_evaluation(val_outputs, val_y)
+            tr_prec_previous = tr_prec
             tr_prec = self.ft_precision_evaluation(tr_outputs, tr_y)
             val_acc = self.ft_acc_evaluation(val_outputs, val_y)
             val_prec = self.ft_precision_evaluation(val_outputs, val_y)
-            if math.isnan(val_loss) or math.isnan(loss) or (val_loss > val_loss_previous and loss_previous) or loss_previous - loss > 0.1:
+            if math.isnan(val_cost) or (val_cost > val_cost_previous and epoch and tr_prec > tr_prec_previous):
                 with open('minmax.json', 'w+') as json_file:  
-                    json.dump(self.minmax, json_file)
-                    if self.visu:
-                        del plot_tr_loss[-1]
-                        del plot_val_loss[-1]
-                        plt.plot(plot_tr_loss, label='loss')
-                        plt.plot(plot_tr_acc, label='accuracy')
-                        plt.plot(plot_val_loss, label='validation loss')
-                        if details:
-                            plt.plot(plot_tr_prec, label='precision')
-                            plt.plot(plot_val_acc, label='validation accuracy')
-                            plt.plot(plot_val_prec, label='validation precision')
-                        plt.legend()
+                    json.dump(minmax, json_file)
+                    if visu:
+                        plt.plot(plot_tr_loss)
+                        plt.plot(plot_tr_acc)
+                        plt.plot(plot_val_loss)
                         plt.show()
-                    np.save('network.npy', self.previous_network)
+                    np.save('network.npy', self.network)
                 exit()
             if visu:
-                plot_tr_loss.append(loss)
+                plot_tr_loss.append(cost)
                 plot_tr_acc.append(tr_acc)
-                plot_val_loss.append(val_loss)
-                if details:
-                    plot_tr_prec.append(tr_prec)
-                    plot_val_acc.append(val_acc)
-                    plot_val_prec.append(val_prec)
+                plot_val_loss.append(val_cost)
             if details:
-                print('>epoch=%d, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, loss, tr_acc, tr_prec, val_loss, val_acc, val_prec))
+                print('>epoch=%d, lrate=%.4f, loss=%.3f, acc=%.3f, prec=%.3f, val_loss=%.3f, val_acc=%.3f, val_prec=%.3f' % (epoch, lr, cost, tr_acc, tr_prec, val_cost, val_acc, val_prec))
             else:
-                print('>epoch=%d, loss=%.3f, val_loss=%.3f' % (epoch, loss, val_loss))
+                print('>epoch=%d, lrate=%.4f, loss=%.3f, val_loss=%.3f' % (epoch, lr, cost, val_cost))
         with open('minmax.json', 'w+') as json_file:  
-            json.dump(self.minmax, json_file)
+            json.dump(minmax, json_file)
         if visu:
-            plt.plot(plot_tr_loss, label='loss')
-            plt.plot(plot_tr_acc, label='accuracy')
-            plt.plot(plot_val_loss, label='validation loss')
-            if details:
-                plt.plot(plot_tr_prec, label='precision')
-                plt.plot(plot_val_acc, label='validation accuracy')
-                plt.plot(plot_val_prec, label='validation precision')
-        if visu:
-            plt.legend()
+            plt.plot(plot_tr_loss)
+            plt.plot(plot_tr_acc)
+            plt.plot(plot_val_loss)
             plt.show()
         return self.network
 
 args = argparse.ArgumentParser("Statistic description of your data file")
 args.add_argument("file", help="File to descripte", type=str)
-args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=25000)
+args.add_argument("-e", "--epoch", help="The number of iterations to go through the regression", default=5000)
 args.add_argument("-l", "--learning", help="The learning rate to use during the regression", default=0.1, type=float)
 args.add_argument("-v", "--visu", help="Visualize functions", action="store_true", default=False)
 args.add_argument("-n", "--network", help="Specific network input", type=str, default=False)
