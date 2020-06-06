@@ -1,8 +1,8 @@
 # mlp
-Multilayer perception
+Multilayer perceptron
 
 # Objectif
-Mettre en place un multilayerperceptron pour déceler si un cancer est malin ou bénin sur un dataset de diagnostics de cancer du sein réalisé au Wisconsin.
+Mettre en place un multilayer perceptron pour déceler si un cancer est malin ou bénin sur un dataset de diagnostics de cancer du sein réalisé au Wisconsin.
  
 Développement d'un réseau de typefeedforward, c’est-à-dire que leflot d’informations circule de la couche d’entrée (input layer) vers la couche de sortie(output layer) défini par la présence d’une ou plusieurs couches cachées (hiddenlayers) ainsi qu’une interconnexion de tous les neurones d’une couche à la suivante.
 
